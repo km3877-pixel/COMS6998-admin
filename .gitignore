@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.vercel/
+.tools/
+coverage/
+test-results/
+.agents/
+.codex/
+skills-lock.json
+Documentation/*.pdf

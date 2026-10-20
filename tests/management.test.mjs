@@ -1,0 +1,95 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { PGlite } from "@electric-sql/pglite";
+import { listFilters,styles } from "../lib/management.mjs";
+import { parseCaptions,prepareImage,generateCaptions } from "../lib/admin-generation.mjs";
+import sharp from "sharp";
+const owner="00000000-0000-0000-0000-000000000001",other="00000000-0000-0000-0000-000000000002",id="10000000-0000-0000-0000-000000000001";
+const captions=Object.fromEntries(Object.keys(styles).map(s=>[s,`Original ${s}`]));
+test("media CRUD preserves rated text and archives all dependent history; all RPCs fail closed",async()=>{
+  const db=new PGlite();
+  try {
+    await db.exec(`create role anon; create role authenticated; create schema auth;
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      create function auth.jwt() returns jsonb language sql as $$select current_setting('request.jwt.claims',true)::jsonb$$;
+      create table public.profiles(id uuid primary key,firstname text,lastname text);
+      create table auth.users(id uuid primary key,email text,created_at timestamptz default now(),last_sign_in_at timestamptz);
+      insert into public.profiles values('${owner}','Owner','One'),('${other}','User','Two');
+      insert into auth.users(id,email) values('${owner}','owner@example.test'),('${other}','user@example.test');`);
+    await db.exec(await readFile(new URL("fixtures/consumer-media.sql",import.meta.url),"utf8"));
+    await db.exec(await readFile(new URL("../supabase/migrations/20261020042634_admin_access.sql",import.meta.url),"utf8"));
+    await db.exec(await readFile(new URL("../supabase/migrations/20261020050449_admin_management.sql",import.meta.url),"utf8"));
+    await db.exec(`insert into admin_private.members(user_id) values('${owner}');
+      set request.jwt.claim.sub='${owner}';
+      set request.jwt.claims='{"app_metadata":{"provider":"google"},"amr":[{"method":"oauth"}]}';
+      set role authenticated;`);
+    const rpc=async(name,args=[])=>{
+      const placeholders=args.map((_,n)=>`$${n+1}`).join(",");
+      return (await db.query(`select public.${name}(${placeholders}) as data`,args)).rows[0].data;
+    };
+    await rpc("admin_reserve_media",[id]);
+    await assert.rejects(rpc("admin_reserve_media",[id]),/already submitted/);
+    await rpc("admin_create_media",[id,"Test post","a".repeat(64),"b".repeat(64),100,JSON.stringify(captions),'{"provider":"test"}']);
+    const detail=await rpc("admin_media_detail",[id]),c=detail.captions[0],exposure="20000000-0000-0000-0000-000000000001";
+    assert.equal(detail.published,false); assert.equal(detail.captions.length,3); assert.equal(detail.uploaded_by,owner);
+    assert.equal((await rpc("admin_profiles",["owner",1])).total,1);
+    assert.equal((await rpc("admin_media_list",["test","draft",1])).total,1);
+    await db.exec(`reset role;
+      insert into public.review_exposures(id,user_id,image_id,caption_ids) values('${exposure}','${other}','${id}',array['${c.id}'::uuid]);
+      insert into public.caption_impressions(exposure_id,caption_id,user_id,position) values('${exposure}','${c.id}','${other}',1);
+      insert into public.caption_votes(user_id,caption_id,value,exposure_id) values('${other}','${c.id}',1,'${exposure}');
+      insert into public.caption_vote_events(user_id,caption_id,value,exposure_id) values('${other}','${c.id}',1,'${exposure}'),('${other}','${c.id}',null,'${exposure}');
+      insert into public.caption_generation_requests(id,user_id,image_id,source_exposure_id,tone,status) values(gen_random_uuid(),'${other}','${id}','${exposure}',50,'pending');
+      set role authenticated;`);
+    await assert.rejects(rpc("admin_delete_media",[id,1,"DELETE"]),/pending/);
+    await rpc("admin_update_media",[id,1,"Edited description",true,JSON.stringify([{id:c.id,text:"Changed caption"}])]);
+    const updated=await rpc("admin_media_detail",[id]);
+    assert.equal(updated.captions.length,4);
+    assert.equal(updated.captions.find(x=>x.id===c.id).active,false);
+    assert.equal(updated.captions.find(x=>x.text==="Changed caption").upvotes,0);
+    assert.equal((await rpc("admin_ratings",["","all","current",1])).rows[0].caption,c.text);
+    assert.equal((await rpc("admin_ratings",["","removed","events",1])).total,1);
+    await assert.rejects(rpc("admin_update_media",[id,1,"stale",false,"[]"]),/reload/);
+    await assert.rejects(rpc("admin_delete_media",[id,2,"no"]),/Type DELETE/);
+    await db.exec("reset role; update public.caption_generation_requests set status='failed'; set role authenticated;");
+    await rpc("admin_delete_media",[id,2,"DELETE"]);
+    assert.equal(await rpc("admin_media_detail",[id]),null);
+    assert.equal((await rpc("admin_ratings",["","all","current",1])).total,0);
+    assert.equal((await rpc("admin_ratings",["","all","deleted",1])).total,2);
+    await assert.rejects(db.query("select * from admin_private.media_audit"),/permission denied/);
+    const calls=[["admin_profiles",[]],["admin_media_list",[]],["admin_media_detail",[id]],["admin_ratings",[]],
+      ["admin_reserve_media",[id]],["admin_create_media",[id,"x","a".repeat(64),"b".repeat(64),1,"{}","{}"]],
+      ["admin_update_media",[id,0,"x",false,"[]"]],["admin_delete_media",[id,0,"DELETE"]]];
+    await db.exec(`set request.jwt.claim.sub='${other}'`);
+    for(const [name,args] of calls) await assert.rejects(rpc(name,args),/Admin access required/);
+    await db.exec(`reset role; delete from admin_private.members; set request.jwt.claim.sub='${owner}'; set role authenticated;`);
+    for(const [name,args] of calls) await assert.rejects(rpc(name,args),/Admin access required/);
+    await db.exec("set role anon");
+    for(const [name,args] of calls) await assert.rejects(rpc(name,args),/permission denied/);
+    await db.exec("reset role");
+    const archive=(await db.query("select snapshot from admin_private.media_audit where action='delete'")).rows[0].snapshot;
+    assert.equal(archive.votes.length,1);assert.equal(archive.events.length,2);assert.equal(archive.caption_requests.length,1);
+    assert.equal(archive.captions.length,4);assert.equal(archive.runs.length,1);assert.equal(archive.exposures.length,1);assert.equal(archive.impressions.length,1);
+  } finally {await db.close();}
+});
+test("image validation and AI response handling",async()=>{
+  const bytes=await sharp({create:{width:64,height:64,channels:3,background:"#32658b"}}).png().toBuffer();
+  const prepared=await prepareImage(bytes);
+  assert(prepared.bytes.length<=256000);assert.equal(prepared.sourceHash.length,64);
+  assert.equal((await sharp(prepared.bytes).metadata()).format,"webp");
+  await assert.rejects(prepareImage(Buffer.from("<svg/>")));
+  const raw={candidates:[{finishReason:"STOP",content:{parts:[{text:JSON.stringify(captions)}]}}]};
+  assert.deepEqual(parseCaptions(raw),captions);
+  assert.throws(()=>parseCaptions({candidates:[]}));
+  assert.throws(()=>parseCaptions({candidates:[{finishReason:"MAX_TOKENS"}]}));
+  const generated=await generateCaptions(prepared.bytes,{apiKey:"test",fetchImpl:async(url,options)=>{
+    assert.equal(options.headers["x-goog-api-key"],"test");
+    assert.equal(JSON.parse(options.body).contents[0].parts[1].inlineData.mimeType,"image/webp");
+    return {ok:true,json:async()=>raw};
+  }});
+  assert.deepEqual(generated.captions,captions);
+  await assert.rejects(generateCaptions(prepared.bytes,{apiKey:"test",fetchImpl:async()=>({ok:false})}),/unavailable/);
+  assert.equal(listFilters({page:"-1",q:" test "}).search,"test");
+  assert.equal(listFilters({page:"-1"}).page,1);
+});
