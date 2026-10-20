@@ -337,3 +337,7 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   brief. Application Google/admin authorization remains enforced.
 - First Git deployment and Supabase callback allowlist verification are next;
   no successful live deployment is claimed by this entry.
+- First Git build failed because an unanchored `supabase` exclusion in
+  `.vercelignore` also removed `lib/supabase`. Anchored exclusions at the root;
+  CLI dry run now includes all four app Supabase modules and excludes local
+  environment files. Pinned Node 24.x to match the configured runtime.
