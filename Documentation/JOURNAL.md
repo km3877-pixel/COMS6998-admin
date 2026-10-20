@@ -386,3 +386,47 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
 - Local validation: all 15 tests passed, including retry bounds, revocation,
   sign-out during retry, and diagnostic redaction. Production build passed.
   Deployment and user-authenticated verification are pending for this change.
+- Deployment verified Ready: commit `c7015197fc3527998957304005e834939f79bf1b`,
+  deployment `dpl_DSFJjsjzQxDdbck8R4ZiCbJiMsyk`, immutable URL
+  https://coms6998-admin-xwek4reui-km3877-coms-6998.vercel.app .
+  Production alias updated. Live HTTP smoke passed for public entry points,
+  anonymous/forged/RSC access, API 401 and invalid callbacks. User-authenticated
+  retry remains pending; this is a mitigation with diagnostics, not a confirmed
+  root-cause resolution.
+- User subsequently confirmed signed-in access passed on the updated deployment.
+  This is user-reported authenticated success; the agent independently verified
+  the deployment and unauthenticated access-control smoke checks above. The
+  underlying cause of the original PGRST303 remains unconfirmed.
+
+## October 19, 2026: Additional administrator granted
+
+- At the owner's explicit request, verified igi2001@columbia.edu has a confirmed
+  email, Google identity and existing profile in project thrkmilojkqqntdnrgwo.
+- Granted the exact verified account membership through trusted Supabase MCP SQL
+  in admin_private.members, using UUID and email predicates. Follow-up query
+  verified admin_access_granted=true. This grants the same application admin
+  permissions as the owner; no database superuser role was granted.
+- Google login remains required. Actual sign-in by the added administrator has
+  not been observed. No schema, consumer RLS or deployment changes were needed.
+
+## October 19, 2026: Superuser management
+
+- Added a protected Superusers tab listing current administrators, exact-email
+  grants for existing confirmed Google users, and confirmed revocation controls.
+  All superusers can manage access; self-revocation exits the admin panel.
+- New application-owned migration admin_superusers applied to verified project
+  thrkmilojkqqntdnrgwo; local filename matches hosted version 20261020060232.
+  The two RPCs verify live Google/admin membership. Writes serialize on the
+  membership table, recheck the actor after acquiring the lock, prevent deleting
+  the final member, and append actual changes to a private audit table.
+- No direct client membership/audit access, managed-schema changes, consumer
+  policy changes, service-role authorization bypass, or real membership changes.
+- All 16 tests and production build passed. New database tests cover confirmed
+  Google eligibility, grants, idempotency, revoked actor denial, last-admin
+  protection, self-revocation, private audit contents and anonymous denial.
+- Hosted rollback-only SQL role check returned two superusers and confirmed anon
+  cannot execute the mutation. Security advisors show expected private-table
+  no-policy and authenticated security-definer notices; explicit guards and
+  denied direct table access are tested. Other pre-existing findings unchanged.
+- Deployment and live HTTP checks pending; authenticated browser interactions
+  with the new controls have not been independently verified.

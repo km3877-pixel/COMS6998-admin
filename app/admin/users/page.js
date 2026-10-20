@@ -7,7 +7,7 @@ export default async function Users({searchParams}) {
   const {search,page}=listFilters(await searchParams);
   const {data,error}=await (await createClient()).rpc("admin_profiles",{p_search:search,p_page:page});
   if(error || !data) return <LoadError/>;
-  return <section><h2>Users / profiles</h2><p className="muted">Profile details and account activity. Read-only.</p>
+  return <section><h2>Users / profiles</h2><p className="muted">Profile details and account activity. Read-only. <a href="/admin/superusers">Manage superuser access</a></p>
     <form className="dashboard-filters"><SearchField search={search}/><button>Search</button></form>
     <div className="table-container"><table><thead><tr><th>User</th><th>Access</th><th>Posts / votes</th><th>Account activity</th></tr></thead>
       <tbody>{data.rows.map(u=><tr key={u.id}><td><strong>{[u.firstname,u.lastname].filter(Boolean).join(" ") || "Incomplete profile"}</strong><br/>{u.email || "No email"}<details><summary>User ID</summary><code>{u.id}</code></details></td>

@@ -27,7 +27,7 @@ assert.equal(api.status, 401);
 assert.deepEqual(await api.json(), { error: "Sign in required" });
 const media = await fetch(base + "/api/admin/media/00000000-0000-0000-0000-000000000001");
 assert.equal(media.status, 401);
-for (const path of ["/admin/users","/admin/ratings","/admin/media","/admin/media/new","/admin/media/00000000-0000-0000-0000-000000000001"]) {
+for (const path of ["/admin/superusers","/admin/users","/admin/ratings","/admin/media","/admin/media/new","/admin/media/00000000-0000-0000-0000-000000000001"]) {
   for (const headers of [{},{Cookie:"punchline-admin-auth=forged-session"}]) {
     const response=await fetch(base+path,{redirect:"manual",headers});
     assert.equal(response.status,307,path);

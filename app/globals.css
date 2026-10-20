@@ -107,6 +107,9 @@ input:focus-visible,textarea:focus-visible { outline: 2px solid #174b85; outline
 .provenance { white-space:pre-wrap; overflow-wrap:anywhere; max-height:300px; overflow:auto; font-size:12px; }
 code { overflow-wrap:anywhere; }
 .overview-intro p { margin: 0; }
+.access-revoke { min-width: 220px; max-width: 360px; }
+.access-revoke summary { color: #913c36; }
+.access-revoke button { background: #a13f37; border-color: #a13f37; }
 @media (max-width: 700px) {
   .summary-grid, .style-grid { grid-template-columns: 1fr; gap: 12px; }
   .stat-card { padding: 18px; }
