@@ -341,3 +341,48 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   `.vercelignore` also removed `lib/supabase`. Anchored exclusions at the root;
   CLI dry run now includes all four app Supabase modules and excludes local
   environment files. Pinned Node 24.x to match the configured runtime.
+
+## October 19, 2026: First verified admin deployment
+
+- Git commit `04a9194fdc046239a25799c8e576f5832c48618d` deployed successfully:
+  `dpl_81DoPCZ2EdFQ5hJ7KWCkccWit2UN`, production, status Ready.
+- Production URL:
+  https://coms6998-admin-km3877-coms-6998.vercel.app
+- Commit-specific URL:
+  https://coms6998-admin-ga4wyw6va-km3877-coms-6998.vercel.app
+- Additional assigned aliases: `coms6998-admin-five.vercel.app` and
+  `coms6998-admin-git-main-km3877-coms-6998.vercel.app`.
+- Unauthenticated public requests reach the app without Vercel's login wall.
+  The full HTTP smoke suite passed on the commit-specific URL, including
+  anonymous/forged sessions, protected routes, RSC redirects, API/media 401s
+  and invalid callbacks. Production alias login returned 200, admin redirected
+  to login, and session API returned 401.
+- Downloaded the ten JavaScript assets referenced by the production login page;
+  neither configured private key appeared in those assets.
+- **Pending user action:** connected Supabase MCP lacks Auth configuration
+  tools; Supabase CLI is not authenticated. Asked user to add these redirects
+  while preserving the existing consumer Site URL and redirect entries:
+  `https://coms6998-admin-km3877-coms-6998.vercel.app/auth/callback`
+  and `https://coms6998-admin-*-km3877-coms-6998.vercel.app/auth/callback`.
+  These cover the recommended production URL, branch and immutable deployment
+  URLs. The short `coms6998-admin-five.vercel.app` alias needs its own exact
+  callback if used for sign-in.
+- Actual hosted Google sign-in, authenticated page reads and provider/media
+  mutations remain unverified. No submission was made. This journal entry is
+  a local post-deployment record; the verified deployment is the commit above.
+
+## October 19, 2026: Hosted permission-check investigation
+
+- User reported "Access check unavailable" after Google sign-in. Hosted owner
+  membership and authenticated EXECUTE permission remain present.
+- Supabase logs at 2026-10-20 05:42:15 UTC show a successful Auth user request
+  followed by is_admin responses 200 and 401. The failed response proxy-status
+  identifies PGRST303 (JWT claims validation/parsing). The precise cause is
+  not yet established; no membership, RLS, or key changes were made.
+- Added one delayed retry specifically for PGRST303, repeating Google identity,
+  token and database membership checks. Persistent failures still deny access.
+  Added sanitized server diagnostics containing only stage, constrained error
+  code, classified reason, HTTP status and attempt number.
+- Local validation: all 15 tests passed, including retry bounds, revocation,
+  sign-out during retry, and diagnostic redaction. Production build passed.
+  Deployment and user-authenticated verification are pending for this change.

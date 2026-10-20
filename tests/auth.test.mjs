@@ -63,3 +63,41 @@ test("membership revocation is seen on the very next check", async () => {
   assert.equal((await checkAccess(f.client)).status, "denied");
   assert.equal(f.calls(), 2);
 });
+
+test("transient token rejection repeats authentication and requires a fresh grant", async () => {
+  const f = fixture({ allowed: true, dbError: { code: "PGRST303" } });
+  let users = 0;
+  const getUser = f.client.auth.getUser;
+  f.client.auth.getUser = async () => { users++; return getUser(); };
+  const result = await checkAccess(f.client, { wait: async ms => {
+    assert.equal(ms, 1000);
+    f.options.dbError = null;
+  } });
+  assert.equal(result.status, "authorized");
+  assert.equal(users, 2);
+  assert.equal(f.calls(), 2);
+});
+
+test("retry is bounded and never bypasses revocation or rejected authentication", async () => {
+  for (const outcome of ["persistent", "revoked", "signed-out"]) {
+    const f = fixture({ allowed: true, dbError: { code: "PGRST303" } });
+    const result = await checkAccess(f.client, { wait: async () => {
+      if (outcome === "revoked") { f.options.dbError = null; f.options.allowed = false; }
+      if (outcome === "signed-out") f.options.anonymous = true;
+    } });
+    assert.equal(result.status, { persistent: "unavailable", revoked: "denied", "signed-out": "anonymous" }[outcome]);
+    assert.ok(f.calls() <= 2);
+  }
+});
+
+test("diagnostics exclude raw error content and cannot affect the access decision", async () => {
+  const diagnostics = [];
+  const f = fixture({ dbError: { code: "PGRST303", message: "JWT issued at future secret-token", details: "private" } });
+  await checkAccess(f.client, { wait: async () => {}, report: d => diagnostics.push(d) });
+  assert.deepEqual(diagnostics[0], { stage: "permission", code: "PGRST303", reason: "token_time", status: null, attempt: 0 });
+  assert.equal(JSON.stringify(diagnostics).includes("secret-token"), false);
+  assert.equal(JSON.stringify(diagnostics).includes("private"), false);
+  assert.equal((await checkAccess(fixture({ dbError: {} }).client, {
+    report: () => { throw new Error("logger failed"); },
+  })).status, "unavailable");
+});
