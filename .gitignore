@@ -10,3 +10,4 @@ test-results/
 .codex/
 skills-lock.json
 Documentation/*.pdf
+supabase/.temp/

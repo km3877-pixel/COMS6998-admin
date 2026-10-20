@@ -321,3 +321,19 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   the available browser inventory is empty. Requested the Vercel connection.
   No admin project, environment settings, redirect allowlist or deployment has
   been created/changed yet.
+
+## October 19, 2026: Vercel project configured
+
+- Initial application commit `845d75e` was pushed to the admin GitHub repository.
+  User completed Vercel CLI device authorization after installing the plugin.
+- Created and verified separate project `coms6998-admin`
+  (`prj_ADZ6oWfHROEis5OvjRq2C83PqU0f`) in `km3877-coms-6998`
+  (`team_73LcaBA92Qh0sAoP7qW9UgC0`), with Next.js and Node 24.x.
+- Connected `km3877-pixel/COMS6998-admin` through the Vercel Git integration.
+  Saved the four required environment variables for Production and Preview;
+  Supabase service-role and Gemini keys are Secrets. Values were transmitted
+  through stdin and not displayed or committed. Local environment retained.
+- Disabled the project's Vercel Authentication protection to satisfy the course
+  brief. Application Google/admin authorization remains enforced.
+- First Git deployment and Supabase callback allowlist verification are next;
+  no successful live deployment is claimed by this entry.
