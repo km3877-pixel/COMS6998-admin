@@ -3,7 +3,7 @@ import { requireAdmin } from "../../../lib/auth/admin";
 import { createClient } from "../../../lib/supabase/server";
 import { storageAdmin } from "../../../lib/supabase/storage-admin";
 import { isUuid } from "../../../lib/management.mjs";
-import { prepareImage,generateCaptions } from "../../../lib/admin-generation.mjs";
+import { prepareImage,generateConfiguredCaptions } from "../../../lib/admin-generation.mjs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -52,16 +52,26 @@ export async function createMedia(previous,form) {
   try { image=await prepareImage(Buffer.from(await file.arrayBuffer())); }
   catch { return {error:"This image could not be read. Use a still JPEG, PNG or WebP under 3 MB and 24 megapixels."}; }
   const client=await createClient();
+  const configuration=await client.rpc("admin_generation_config");
+  if(configuration.error || !configuration.data) return {error:"Could not read the generation configuration. Refresh and try again."};
   const reserved=await client.rpc("admin_reserve_media",{p_id:id});
   if(reserved.error) return {error:"This request was already submitted or the creation limit was reached. Check Media, then start a new request. Allow 30 seconds between requests (20 per day)."};
   let generated;
-  try { generated=await generateCaptions(image.bytes,{apiKey:process.env.GEMINI_API_KEY}); }
-  catch { return {error:"The AI provider could not generate captions. Start a new request to try again."}; }
+  try { generated=await generateConfiguredCaptions(image.bytes,{apiKey:process.env.GEMINI_API_KEY,config:configuration.data}); }
+  catch(e) {
+    await client.rpc("admin_record_generation",{p_id:id,p_status:"failed",p_details:e.provenance??{error:"provider_or_configuration_failed",configuration:configuration.data}});
+    return {error:"Caption generation failed. Check the enabled chains and model providers, then start a new request."};
+  }
+  const recorded=await client.rpc("admin_record_generation",{p_id:id,p_status:"generated",p_details:generated.provenance});
+  if(recorded.error) return {error:"Could not record the generation. Check Generation requests before retrying."};
   // Recheck live membership after the provider call, before privileged Storage.
   await requireAdmin();
   try {
     const {error}=await storageAdmin().storage.from("caption-images").upload(`admin/${id}.webp`,image.bytes,{contentType:"image/webp",upsert:false});
-    if(error) return {error:"Image upload failed. Start a new request to retry."};
+    if(error) {
+      await client.rpc("admin_record_generation",{p_id:id,p_status:"failed",p_details:{...generated.provenance,error:"upload_failed"}});
+      return {error:"Image upload failed. Start a new request to retry."};
+    }
     const result=await client.rpc("admin_create_media",{p_id:id,p_alt:alt.trim(),p_source_hash:image.sourceHash,p_hosted_hash:image.hostedHash,
       p_bytes:image.bytes.length,p_captions:generated.captions,p_provenance:generated.provenance});
     // Never delete an uploaded object on an ambiguous DB/network error: the

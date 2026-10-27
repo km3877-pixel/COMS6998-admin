@@ -11,7 +11,7 @@ export function CreateForm({id,configured}) {
     <small className="muted">Still JPEG, PNG or WebP, up to 3 MB. The image will be compressed for hosting.</small>
     <label>Image description<textarea name="alt" rows={2} maxLength={300} required disabled={pending || !configured}/></label>
     <Message state={state}/>
-    <div className="button-row"><button disabled={pending || !configured}>{pending?"Generating captions and saving…":"Generate 3 captions & save draft"}</button><a href="/admin/media">Cancel</a>{state?.error && <a href="/admin/media/new">Start a new request</a>}</div>
+    <div className="button-row"><button disabled={pending || !configured}>{pending?"Generating captions and saving…":"Generate captions & save draft"}</button><a href="/admin/media">Cancel</a>{state?.error && <a href="/admin/media/new">Start a new request</a>}</div>
     {pending && <p role="status">This can take about 30 seconds. Keep this page open.</p>}
   </form>;
 }

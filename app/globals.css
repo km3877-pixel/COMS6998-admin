@@ -110,6 +110,10 @@ code { overflow-wrap:anywhere; }
 .access-revoke { min-width: 220px; max-width: 360px; }
 .access-revoke summary { color: #913c36; }
 .access-revoke button { background: #a13f37; border-color: #a13f37; }
+.config-editor { padding: 18px; margin: 20px 0; border: 1px solid #cfdee8; border-radius: 6px; }
+.config-editor summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+.record-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+.main-menu a { padding: 7px 11px; font-size: 13px; }
 @media (max-width: 700px) {
   .summary-grid, .style-grid { grid-template-columns: 1fr; gap: 12px; }
   .stat-card { padding: 18px; }

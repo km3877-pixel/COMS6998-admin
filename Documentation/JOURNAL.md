@@ -430,3 +430,63 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   denied direct table access are tested. Other pre-existing findings unchanged.
 - Deployment and live HTTP checks pending; authenticated browser interactions
   with the new controls have not been independently verified.
+- Deployment verified Ready for commit fd7841f592adbea66c64ebf766ea414372648040,
+  deployment dpl_AKpBMvCNCGvgpMjViUixPsWCRBs9 at
+  https://coms6998-admin-cw2u60y4e-km3877-coms-6998.vercel.app . Production aliases
+  updated. Live HTTP smoke passed, including anonymous/forged access to the
+  Superusers route. Signed-in browser grant/revoke interactions remain unverified.
+
+## October 26, 2026: Week 7 assignment received
+
+- Recorded the user-supplied assignment in `WEEK7_BRIEF.md`: due October 29 at
+  11:00 AM PDT, feedback 50 points and expanded admin capabilities 50 points.
+- Compared required operations with local admin routes and consumer migrations.
+  Users and image management exist; prompt-chain controls, configuration CRUD,
+  and dedicated generation request/response viewers remain to be implemented.
+- Image CRUD/upload applies because uploads are supported. Signup whitelists
+  must not be confused with the existing Superusers membership controls.
+- Specific previous-week feedback has not been supplied. Hosted schema mapping,
+  new implementation, production QA and Week 7 submission remain pending.
+- Documentation only; no application, database, deployment or submission changes.
+
+## October 26, 2026: Week 7 implementation
+
+- User authorized the full Week 7 feature list in the existing admin app.
+  Added searchable, paginated prompt-chain and step readers, a mix editor,
+  terms/examples/models/providers/signup-domain/email-whitelist CRUD, and
+  generation request, LLM response and saved prompt-run viewers. Existing user
+  browsing and image upload/read/update/delete remain available.
+- Reverified project `thrkmilojkqqntdnrgwo` through the hosted schema. Its
+  public tables contained consumer caption runs/requests, but no course-style
+  configuration tables. Added application-owned private tables and guarded RPCs;
+  migration `20261027001320_admin_week7` applied through CLI after dry-run review.
+- Seeded three explicit one-step admin caption chains from the existing styles.
+  Mix supports 0/1 caption per style, retaining the consumer's one-active-caption
+  uniqueness rule and requiring at least one enabled style. New admin uploads use
+  the mix, model/provider records, up to 50 terms and 20 examples. Existing
+  consumer tone-slider generation does not consume this admin configuration.
+- Each new admin generation snapshots configuration, prompts, model, response
+  and duration; failed/partial generations are recorded when the caller remains
+  authorized. Historical imported artifacts stay intact and are readable.
+  Archived runs/requests remain available after media deletion. Old requests
+  without stored responses cannot retrospectively acquire response data.
+- CRUD includes validation, revision conflict checks, confirmed deletion and
+  private change audit. Referenced providers/models cannot be deleted. Registry
+  CRUD permits additional providers, but runtime generation currently supports
+  Google Gemini only. Credentials are never editable through these forms.
+- Signup allowlists are maintained as configuration only; consumer signup
+  enforcement was not added. UI states this explicitly. These records do not
+  confer admin membership. No existing consumer policies, votes, ownership,
+  managed schemas or membership grants changed.
+- Verification: all 19 local tests and production build passed. Tests cover
+  CRUD, stale revisions, FK protection, mix validation, subset-caption creation,
+  archive reads, generation configuration use and anonymous/nonadmin/password/
+  revoked-admin denial. Hosted rollback-only synthetic CRUD/mix checks passed;
+  anon cannot execute and authenticated cannot read private tables directly.
+- All 12 new page variants rendered at desktop/mobile widths without overflow;
+  edit/delete fields and chain disclosures checked, mobile screenshot inspected.
+  These were isolated fixtures, not authenticated browser CRUD. Full actual
+  Google-session/provider/upload end-to-end QA remains unverified.
+- Post-migration advisors report the expected authenticated SECURITY DEFINER
+  RPC notices; each RPC checks live membership. Pre-existing consumer advisories
+  remain unchanged. Deployment verification is recorded separately below.
