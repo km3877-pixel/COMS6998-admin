@@ -527,3 +527,36 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
 - Desktop/mobile fixture rendering and delete-confirmation checks passed.
   Actual signed-in browser file upload remains unverified. Deployment status
   is recorded separately below.
+
+### Images deployment verified
+
+- Vercel reported READY for commit
+  `e36051e1d86bd5080c27b218fa7ae2431bc2bb3a` at
+  https://coms6998-admin-7g98es4dn-km3877-coms-6998.vercel.app .
+- Live HTTP smoke passed for the new Images routes and legacy Media routes,
+  including anonymous/forged denial, API/media denial and public login access.
+- The new function has the expected authenticated SECURITY DEFINER advisory;
+  live membership is checked and anon execution is denied. Actual signed-in
+  file upload remains unverified. This post-deployment entry is local only.
+
+## October 26, 2026: Task-focused admin UI
+
+- Replaced the 17-link horizontal menu with grouped sidebar navigation:
+  Overview, Content, Caption setup, Generation history and Access. Mobile has
+  a keyboard-operable menu toggle with current-page label; a no-JavaScript
+  fallback keeps destinations accessible. Added a skip-to-content link.
+- Configuration lists now have explicit Add term/model/etc. actions. Create
+  and edit modes are separate from lists, with Save/Cancel and a separate
+  confirmed-delete area. Search and pagination context survive save/cancel.
+- Added contextual search placeholders and clear-filter links, actionable empty
+  states, readable chain/model references, compact detail previews, status
+  badges and an explicit image View/edit action. Mix editing uses Include/Exclude
+  choices; response viewers summarize models/output before raw technical data.
+- Retained restrained colors and consistent spacing. No database migrations,
+  authorization changes, provider calls or data mutations in this UI task.
+- Production build and all 19 tests passed. Fixture browser checks cover list,
+  create and edit pages at desktop/mobile widths, context-preserving links and
+  disclosure controls. Hydrated navigation checks cover all 17 destinations,
+  active-route state and keyboard/mobile toggling. Screenshots inspected.
+- Authenticated live CRUD has not been independently exercised; deployment
+  and live access-control checks are recorded after release.

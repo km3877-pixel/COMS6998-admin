@@ -8,4 +8,4 @@ export function Pagination({path,params,page,total}) {
   </nav>;
 }
 export function LoadError() { return <section role="alert"><h2>Couldn&apos;t load this section</h2><p>Refresh to try again. Your access may have changed or the database may be temporarily unavailable.</p></section>; }
-export function SearchField({search}) { return <label>Search<input name="q" defaultValue={search} maxLength={100} type="search" placeholder="Name, text, email or ID" /></label>; }
+export function SearchField({search,placeholder="Name, text, email or ID"}) { return <label>Search<input name="q" defaultValue={search} maxLength={100} type="search" placeholder={placeholder} /></label>; }

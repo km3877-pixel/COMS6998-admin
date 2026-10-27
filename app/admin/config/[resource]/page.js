@@ -6,6 +6,7 @@ import {resources} from '../../../../lib/week7.mjs';
 import {isUuid,listFilters} from '../../../../lib/management.mjs';
 import {LoadError,Pagination,SearchField} from '../../list-parts';
 import ConfigForm from './config-form';
+import {resourceNames} from '../../../../lib/admin-navigation.mjs';
 
 export default async function Configuration({params,searchParams}) {
  await requireAdmin();
@@ -28,20 +29,32 @@ export default async function Configuration({params,searchParams}) {
  }
  const chains=Object.fromEntries((context?.chains??[]).map(c=>[c.id,c]));
  const path=`/admin/config/${resource}`;
+ const listQuery=new URLSearchParams({q:search,page:String(page)}).toString();
+ const back=`${path}?${listQuery}`;
+ const noun=resourceNames[resource];
  const label=row=>row.name??row.term??row.domain??row.email??chains[row.id]?.name??row.caption??row.id;
- return <section><h2>{spec.title}</h2><p className="muted">{spec.description}</p>
+ const creating=query.create==='1'&&!selected&&!spec.readOnly&&!spec.updateOnly;
+ if((selected&&!spec.readOnly)||creating) return <section className="editor-page">
+  <a className="back-link" href={back}>← Back to {spec.title.toLowerCase()}</a>
+  <h2>{creating?`Add ${noun}`:`Edit ${noun}`}</h2>
+  <p className="muted">{creating?spec.description:label(selected)}</p>
+  <ConfigForm key={selected?`${selected.id}:${selected.revision}`:'new'} resource={resource} record={selected??{id:randomUUID()}} providers={providers} search={search} page={page}/>
+  {selected&&!spec.updateOnly&&<details className="danger-zone"><summary>Delete {noun}</summary><p>This permanently removes this {noun}. Saved generation history is retained.</p><ConfigForm resource={resource} record={selected} deleting search={search} page={page}/></details>}
+ </section>;
+ const display=(row,f)=>f.key==='chain_id'?chains[row[f.key]]?.name??row[f.key]:f.key==='provider_id'?providers.find(p=>p.id===row[f.key])?.name??row[f.key]:f.key==='model_id'&&resource==='steps'?context?.chains.flatMap(c=>c.steps??[]).find(s=>s.model_id===row[f.key])?.model??row[f.key]:String(row[f.key]??'—');
+ return <section><div className="section-header"><h2>{spec.title}</h2>
+  {!spec.readOnly&&!spec.updateOnly?<a className="button" href={`${path}?create=1&${listQuery}`}>Add {noun}</a>:<span className="badge">{spec.readOnly?'Read-only':'Applies to new admin uploads'}</span>}</div><p className="muted">{spec.description}</p>
   {['create','update','delete'].includes(query.saved)&&<p role="status" className="notice">{query.saved==='delete'?'Record deleted.':'Changes saved.'}</p>}
-  {selected&&!spec.readOnly&&<section className="config-editor"><h3>Edit {label(selected)}</h3><ConfigForm key={`${selected.id}:${selected.revision}`} resource={resource} record={selected} providers={providers}/><p><a href={path}>Close editor</a></p>
-   {!spec.updateOnly&&<details className="danger-zone"><summary>Delete this record</summary><p>Delete this configuration record permanently. Saved generation history is retained.</p><ConfigForm resource={resource} record={selected} deleting/></details>}</section>}
-  {!spec.readOnly&&!spec.updateOnly&&<details className="config-editor"><summary>Create record</summary><ConfigForm resource={resource} record={{id:randomUUID()}} providers={providers}/></details>}
-  <form className="dashboard-filters"><SearchField search={search}/><button>Search</button></form>
-  <div className="table-container"><table><thead><tr><th>Record</th><th>Details</th><th>Actions</th></tr></thead><tbody>
+  <form className="dashboard-filters"><SearchField search={search} placeholder={`Search ${spec.title.toLowerCase()}`}/><button>Search</button>{search&&<a href={path}>Clear search</a>}</form>
+  <div className="table-container"><table><thead><tr><th>{resource==='mix'?'Prompt chain':'Name / entry'}</th><th>{resource==='mix'?'Generation':'Details'}</th><th>Action</th></tr></thead><tbody>
    {data.rows.map(row=><tr key={row.id}><td><strong>{label(row)}</strong><details><summary>ID</summary><code>{row.id}</code></details></td><td>
-    {spec.fields.map(f=><div key={f.key}><strong>{f.label}: </strong><span className="record-value">{f.key==='chain_id'?chains[row[f.key]]?.name??row[f.key]:f.key==='provider_id'?providers.find(p=>p.id===row[f.key])?.name??row[f.key]:String(row[f.key]??'—')}</span></div>)}
+    {resource==='mix'?<span className={`badge ${row.caption_count?'positive':''}`}>{row.caption_count?'Included · 1 caption':'Excluded · 0 captions'}</span>:
+     spec.fields.filter(f=>!['name','term','domain','email','caption'].includes(f.key)).map(f=><div className="record-field" key={f.key}>{f.type==='textarea'?<><span className="muted">{f.label}</span><p className="record-value">{display(row,f).slice(0,160)||'Not provided'}{display(row,f).length>160?'…':''}</p>{display(row,f).length>160&&<details><summary>Read full {f.label.toLowerCase()}</summary><p className="record-value">{display(row,f)}</p></details>}</>:<><span className="muted">{f.label}: </span><span className="record-value">{display(row,f)}</span></>}</div>)}
+    {['domains','emails'].includes(resource)&&<span className="muted">Signup allowlist entry</span>}
     {resource==='chains'&&<details><summary>Read ordered steps</summary>{chains[row.id]?.steps?.map(s=><div key={s.id}><h4>{s.position}. {s.name}</h4><p className="record-value">{s.instructions}</p><p>{s.provider} / {s.model} · Temperature {s.temperature}</p></div>)}</details>}
-   </td><td>{spec.readOnly?(resource==='chains'?<a href={`/admin/config/steps?q=${row.id}`}>View steps</a>:'Read-only'):<a href={`${path}?edit=${row.id}`}>Edit{!spec.updateOnly?' / delete':''}</a>}</td></tr>)}
+   </td><td>{spec.readOnly?(resource==='chains'?<a href={`/admin/config/steps?q=${row.id}`}>View steps</a>:<span className="muted">Read-only</span>):<a className="row-action" aria-label={`Edit ${label(row)}`} href={`${path}?edit=${row.id}&${listQuery}`}>Edit</a>}</td></tr>)}
   </tbody></table></div>
-  {!data.rows.length&&<p className="empty-state">No matching records.</p>}
+  {!data.rows.length&&<div className="empty-state"><strong>{search?'No matching results':`No ${spec.title.toLowerCase()} yet`}</strong><p>{search?'Try a different search or clear the filter.':spec.readOnly?'No entries have been recorded.':`Use Add ${noun} to create your first entry.`}</p>{search&&<a href={path}>Clear search</a>}</div>}
   <Pagination path={path} params={{q:search}} page={page} total={data.total}/>
  </section>;
 }
