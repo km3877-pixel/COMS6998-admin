@@ -13,7 +13,7 @@ export default async function Observability({params,searchParams}) {
  return <section><h2>{titles[resource]}</h2><p className="muted">Read-only generation history, including archived records. Older imported runs retain their original artifact format; a missing response means it was not recorded.</p>
  <form className="dashboard-filters"><SearchField search={search}/><button>Search</button></form>
  <div className="table-container"><table><thead><tr><th>Record</th><th>Status / time</th><th>Prompts and output</th></tr></thead><tbody>{data.rows.map(r=><tr key={`${r.source}:${r.id}`}>
- <td>{r.source.replaceAll('_',' ')}<br/><code>{r.id}</code>{r.image_id&&!r.source.startsWith('archived_')&&<p><a href={`/admin/media/${r.image_id}`}>View image</a></p>}</td>
+ <td>{r.source.replaceAll('_',' ')}<br/><code>{r.id}</code>{r.image_id&&!r.source.startsWith('archived_')&&<p><a href={`/admin/images/${r.image_id}`}>View image</a></p>}</td>
  <td><span className="badge">{r.status}</span><br/>{dateTime(r.created_at)}</td>
  <td><details><summary>View recorded details</summary><pre className="provenance">{JSON.stringify(safeRecord(r.detail),null,2)}</pre></details></td>
  </tr>)}</tbody></table></div>{!data.rows.length&&<p className="empty-state">No matching records.</p>}

@@ -16,8 +16,8 @@ export default async function MediaDetail({params,searchParams}) {
   // Only fields required by forms cross the client boundary.
   const formMedia={id:media.id,revision:media.revision,alt_text:media.alt_text,published:media.published,
     captions:media.captions.map(({id,text,style,active,authored_by,generated_by,upvotes,downvotes})=>({id,text,style,active,authored_by,generated_by,upvotes,downvotes}))};
-  return <section><a href="/admin/media">← Media</a><div className="section-header"><h2>Edit media</h2><a href={`/admin/ratings?q=${id}`}>View ratings</a></div>
-    {(query.saved==="1" || query.created==="1") && <p role="status" className="notice">{query.created==="1"?"Draft created. Review the captions below, then publish when ready.":"Changes saved."}</p>}
+  return <section><a href="/admin/images">← Images</a><div className="section-header"><h2>View / edit image</h2><a href={`/admin/ratings?q=${id}`}>View ratings</a></div>
+    {(query.saved==="1" || query.created==="1") && <p role="status" className="notice">{query.created==="1"?"Image uploaded and saved as a draft.":"Changes saved."}</p>}
     <span className="badge">{media.published?"Published":"Draft"}</span> <span className="muted">{dateTime(media.created_at)}</span><br/>
     {!media.published && !process.env.SUPABASE_SERVICE_ROLE_KEY
       ? <p className="notice">Draft image previews need the server-only Supabase key configured. You can still review and edit the caption records.</p>

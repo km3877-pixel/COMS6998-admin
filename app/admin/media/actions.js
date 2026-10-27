@@ -32,7 +32,7 @@ export async function updateMedia(previous,form) {
   const {error}=await (await createClient()).rpc("admin_update_media",{p_id:input.id,p_revision:input.revision,p_alt:alt.trim(),p_published:form.get("published")==="on",p_captions:captions});
   if(error) return failure(error);
   revalidatePath("/admin","layout");
-  redirect(`/admin/media/${input.id}?saved=1`);
+  redirect(`/admin/images/${input.id}?saved=1`);
 }
 export async function deleteMedia(previous,form) {
   await requireAdmin();
@@ -41,22 +41,25 @@ export async function deleteMedia(previous,form) {
   const {error}=await (await createClient()).rpc("admin_delete_media",{p_id:input.id,p_revision:input.revision,p_confirmation:"DELETE"});
   if(error) return failure(error);
   revalidatePath("/admin","layout");
-  redirect("/admin/media?deleted=1");
+  redirect("/admin/images?deleted=1");
 }
 export async function createMedia(previous,form) {
   await requireAdmin();
-  if(!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.GEMINI_API_KEY) return {error:"Creation needs the server-only Supabase and Gemini keys configured in .env.local."};
+  const generate=form.get("generate")==="on";
+  if(!process.env.SUPABASE_SERVICE_ROLE_KEY) return {error:"Image storage is not configured. Contact the administrator."};
+  if(generate && !process.env.GEMINI_API_KEY) return {error:"AI caption generation is not configured. You can upload without AI captions."};
   const id=form.get("id"),alt=form.get("alt"),file=form.get("image");
   if(!isUuid(id) || typeof alt!=="string" || !alt.trim() || alt.trim().length>300 || !(file instanceof File) || !file.size || file.size>3*1024*1024) return {error:"Choose a still JPEG, PNG or WebP under 3 MB and enter a description."};
   let image;
   try { image=await prepareImage(Buffer.from(await file.arrayBuffer())); }
   catch { return {error:"This image could not be read. Use a still JPEG, PNG or WebP under 3 MB and 24 megapixels."}; }
   const client=await createClient();
-  const configuration=await client.rpc("admin_generation_config");
-  if(configuration.error || !configuration.data) return {error:"Could not read the generation configuration. Refresh and try again."};
+  const configuration=generate?await client.rpc("admin_generation_config"):null;
+  if(generate && (configuration.error || !configuration.data)) return {error:"Could not read the generation configuration. Refresh and try again."};
   const reserved=await client.rpc("admin_reserve_media",{p_id:id});
   if(reserved.error) return {error:"This request was already submitted or the creation limit was reached. Check Media, then start a new request. Allow 30 seconds between requests (20 per day)."};
-  let generated;
+  let generated={provenance:{source:"admin_upload",ai_generation:false}};
+  if(generate) {
   try { generated=await generateConfiguredCaptions(image.bytes,{apiKey:process.env.GEMINI_API_KEY,config:configuration.data}); }
   catch(e) {
     await client.rpc("admin_record_generation",{p_id:id,p_status:"failed",p_details:e.provenance??{error:"provider_or_configuration_failed",configuration:configuration.data}});
@@ -64,6 +67,7 @@ export async function createMedia(previous,form) {
   }
   const recorded=await client.rpc("admin_record_generation",{p_id:id,p_status:"generated",p_details:generated.provenance});
   if(recorded.error) return {error:"Could not record the generation. Check Generation requests before retrying."};
+  }
   // Recheck live membership after the provider call, before privileged Storage.
   await requireAdmin();
   try {
@@ -72,12 +76,14 @@ export async function createMedia(previous,form) {
       await client.rpc("admin_record_generation",{p_id:id,p_status:"failed",p_details:{...generated.provenance,error:"upload_failed"}});
       return {error:"Image upload failed. Start a new request to retry."};
     }
-    const result=await client.rpc("admin_create_media",{p_id:id,p_alt:alt.trim(),p_source_hash:image.sourceHash,p_hosted_hash:image.hostedHash,
-      p_bytes:image.bytes.length,p_captions:generated.captions,p_provenance:generated.provenance});
+    const input={p_id:id,p_alt:alt.trim(),p_source_hash:image.sourceHash,p_hosted_hash:image.hostedHash,p_bytes:image.bytes.length};
+    const result=generate
+      ? await client.rpc("admin_create_media",{...input,p_captions:generated.captions,p_provenance:generated.provenance})
+      : await client.rpc("admin_create_uploaded_image",input);
     // Never delete an uploaded object on an ambiguous DB/network error: the
     // transaction may have committed. Retain the private artifact for recovery.
     if(result.error) return {error:"Could not confirm the draft was saved. Check Media before starting a new request."};
   } catch { return {error:"Could not confirm the draft was saved. Check Media before retrying."}; }
   revalidatePath("/admin","layout");
-  redirect(`/admin/media/${id}?created=1`);
+  redirect(`/admin/images/${id}?created=1`);
 }

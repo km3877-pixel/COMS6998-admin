@@ -15,7 +15,7 @@ test('Week 7 configuration CRUD, reference safety, mix, history and authorizatio
    create table public.profiles(id uuid primary key,firstname text,lastname text);
    create table auth.users(id uuid primary key,email text,created_at timestamptz,last_sign_in_at timestamptz);
    insert into public.profiles(id) values('${owner}');`);
-  for(const file of ['tests/fixtures/consumer-media.sql','supabase/migrations/20261020042634_admin_access.sql','supabase/migrations/20261020050449_admin_management.sql','supabase/migrations/20261027001320_admin_week7.sql'])await db.exec(await readFile(file,'utf8'));
+  for(const file of ['tests/fixtures/consumer-media.sql','supabase/migrations/20261020042634_admin_access.sql','supabase/migrations/20261020050449_admin_management.sql','supabase/migrations/20261027001320_admin_week7.sql','supabase/migrations/20261027031250_admin_image_upload.sql'])await db.exec(await readFile(file,'utf8'));
   await db.exec(`insert into admin_private.members(user_id)values('${owner}');set request.jwt.claim.sub='${owner}';set request.jwt.claims='{"app_metadata":{"provider":"google"},"amr":[{"method":"oauth"}]}';set role authenticated;`);
   const rpc=async(name,args=[])=> (await db.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as data`,args)).rows[0].data;
   const write=(kind,op,id,rev,data)=>rpc('admin_config_write',[kind,op,id,rev,JSON.stringify(data)]);
@@ -52,10 +52,22 @@ test('Week 7 configuration CRUD, reference safety, mix, history and authorizatio
   assert.equal((await rpc('admin_observability',['responses','',1])).total,2);
   await rpc('admin_delete_media',[image,1,'DELETE']);
   assert((await rpc('admin_observability',['runs','',1])).rows.some(r=>r.source==='archived_caption_run'));
+  // Upload-only CRUD must work with no model call, captions or fabricated run.
+  const uploaded=randomUUID();
+  await assert.rejects(rpc('admin_create_uploaded_image',[uploaded,'Upload','a'.repeat(64),'b'.repeat(64),100]),/Reserve upload first/);
+  await db.exec("reset role;update admin_private.media_jobs set created_at=now()-interval '1 minute';set role authenticated;");
+  await rpc('admin_reserve_media',[uploaded]);
+  await rpc('admin_create_uploaded_image',[uploaded,'Upload only','a'.repeat(64),'b'.repeat(64),100]);
+  let upload=await rpc('admin_media_detail',[uploaded]);
+  assert.equal(upload.captions.length,0);assert.equal(upload.published,false);assert.equal(upload.ai_generated,false);
+  await rpc('admin_update_media',[uploaded,1,'Edited description',false,'[]']);
+  upload=await rpc('admin_media_detail',[uploaded]);assert.equal(upload.alt_text,'Edited description');
+  await assert.rejects(rpc('admin_update_media',[uploaded,2,'Edited description',true,'[]']),/caption is required/);
+  await rpc('admin_delete_media',[uploaded,2,'DELETE']);assert.equal(await rpc('admin_media_detail',[uploaded]),null);
   for(const resource of ['chains','steps','mix','terms','examples','providers','models','domains','emails']) assert(Array.isArray((await rpc('admin_config_list',[resource,'',1])).rows));
   await assert.rejects(db.query('select * from admin_private.terms'),/permission denied/);
   const denied=async()=>{
-   for(const [name,args] of [['admin_config_list',['terms','',1]],['admin_config_record',['terms',randomUUID()]],['admin_generation_config',[]],['admin_observability',['requests','',1]],['admin_record_generation',[image,'failed','{}']]])await assert.rejects(rpc(name,args),/Admin access required|permission denied/);
+   for(const [name,args] of [['admin_create_uploaded_image',[randomUUID(),'Forbidden','a'.repeat(64),'b'.repeat(64),100]],['admin_config_list',['terms','',1]],['admin_config_record',['terms',randomUUID()]],['admin_generation_config',[]],['admin_observability',['requests','',1]],['admin_record_generation',[image,'failed','{}']]])await assert.rejects(rpc(name,args),/Admin access required|permission denied/);
    await assert.rejects(write('terms','create',randomUUID(),0,{term:'Forbidden',definition:'No',example:''}),/Admin access required|permission denied/);
   };
   await db.exec("set request.jwt.claim.sub='00000000-0000-0000-0000-000000000002'");await denied();

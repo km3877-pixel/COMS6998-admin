@@ -490,3 +490,40 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
 - Post-migration advisors report the expected authenticated SECURITY DEFINER
   RPC notices; each RPC checks live membership. Pre-existing consumer advisories
   remain unchanged. Deployment verification is recorded separately below.
+
+### Week 7 deployment verified
+
+- Commit `5f9405cdd6e5b5cb7d2265233e8c25d371905ba8` pushed to main; Vercel
+  reported READY for the existing `coms6998-admin` project in `km3877-coms-6998`.
+- Commit-specific URL:
+  https://coms6998-admin-i771caamf-km3877-coms-6998.vercel.app
+- Local production HTTP smoke on port 3002 and live smoke on that deployment
+  passed, including all new configuration/history routes, anonymous/forged
+  sessions, RSC redirects, API/media denial and invalid callbacks.
+- Production alias login returned 200 without a Vercel login wall, admin
+  redirected to app login and session API returned 401. Ten referenced browser
+  bundles contained neither configured private key.
+- Signed-in browser mutations and actual Gemini/upload end-to-end verification
+  remain unconfirmed. No assignment submission was made. This post-deployment
+  journal update is local and is not part of the verified commit above.
+
+## October 26, 2026: Dedicated Images section and upload without AI
+
+- User requested an explicit image CRUD/upload section. Added canonical
+  `/admin/images`, `/admin/images/new` and `/admin/images/[id]` routes and an
+  Images navigation label. Existing `/admin/media` bookmarks remain valid.
+- Upload image now defaults to a plain image upload. AI caption generation is
+  optional and needs a provider key only when selected. Upload-only images
+  become private drafts with no invented captions or model provenance.
+- Images supports previews, search, pagination, description/status edits and
+  confirmed deletion with the existing archive preservation. Images without
+  captions cannot be published to the consumer feed; the UI explains this.
+- Applied migration `20261027031250_admin_image_upload` to verified project
+  `thrkmilojkqqntdnrgwo` after dry-run review. It adds one admin-checked function,
+  uses the existing reservation and audit records, and changes no consumer RLS.
+- All 19 tests and production build passed. Added coverage for caption-free
+  create/read/edit/delete, publication rejection and unauthorized upload denial.
+  Hosted rollback-only upload CRUD passed; no test records were retained.
+- Desktop/mobile fixture rendering and delete-confirmation checks passed.
+  Actual signed-in browser file upload remains unverified. Deployment status
+  is recorded separately below.
