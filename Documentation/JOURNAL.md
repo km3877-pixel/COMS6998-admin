@@ -636,3 +636,14 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   verifying live account access; no model list or capability guarantee is invented.
 - Production build and desktop/mobile fixture checks passed. No credentials,
   model assignments, database schema or generation execution changes.
+- Commit `9f3c9ea6c07ca94a0d9eef30486f59f0911d4157` is READY at
+  https://coms6998-admin-9blkb4536-km3877-coms-6998.vercel.app .
+  Live access-control smoke passed; authenticated live model edits are not claimed.
+
+### Week 7 handoff checkpoint
+
+- Application changes and verification notes are committed for next week's work.
+- OpenAI and Anthropic still require server API keys before live use. Gemini
+  was live-tested; other adapters have simulated-response coverage.
+- Admin routing applies to admin uploads; consumer generation remains separate.
+- No assignment submission or authenticated deployed CRUD verification claimed.
