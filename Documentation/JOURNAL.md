@@ -615,3 +615,8 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   Anthropic = `anthropic`. Native input suggestions offer these same values.
 - Help text explains that other identifiers are registry-only and supported
   providers still require a server API key. No credential or database changes.
+- Missing-key provider statuses now show the exact server environment variable,
+  Vercel setup/redeploy instructions, and links to add a compatible model and
+  select it for a prompt step. Explain selection blocking and that simulated
+  API tests do not verify a live account connection. Only variable names and
+  readiness booleans are displayed, never secret values.

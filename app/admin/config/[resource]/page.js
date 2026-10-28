@@ -51,7 +51,15 @@ export default async function Configuration({params,searchParams}) {
  const display=(row,f)=>f.key==='chain_id'?chains[row[f.key]]?.name??row[f.key]:f.key==='provider_id'?providers.find(p=>p.id===row[f.key])?.name??row[f.key]:f.key==='model_id'&&resource==='steps'?context?.chains.flatMap(c=>c.steps??[]).find(s=>s.model_id===row[f.key])?.model??row[f.key]:String(row[f.key]??'—');
  return <section><div className="section-header"><h2>{spec.title}</h2>
   {!spec.readOnly&&!spec.updateOnly?<a className="button" href={`${path}?create=1&${listQuery}`}>Add {noun}</a>:<span className="badge">{spec.readOnly?'Read-only':'Applies to new admin uploads'}</span>}</div><p className="muted">{spec.description}</p>
-  {resource==='providers'&&<div className="notice">{statuses.map(s=><p key={s.slug}><strong>{s.name}</strong> ({s.slug}): {s.configured?'Credentials configured; model access checked on generation':'Missing server credentials'}</p>)}</div>}
+  {resource==='providers'&&<div className="notice">{statuses.map(s=><section key={s.slug} aria-labelledby={`provider-${s.slug}`}>
+   <h3 id={`provider-${s.slug}`}>{s.name} <code>{s.slug}</code></h3>
+   {s.configured?<p>Credentials configured. Access to the selected model is checked when generation runs.</p>:<>
+    <p><strong>Unavailable — API key missing.</strong> To enable this provider:</p>
+    <ol><li>Add <code>{s.environmentVariable}</code> securely to this admin app’s Vercel environment variables.</li><li>Redeploy the admin app so it receives the new key.</li><li>Add a compatible image-capable model in <a href="/admin/config/models?create=1">LLM models</a>, then select it in <a href="/admin/config/steps">Prompt chain steps</a>.</li></ol>
+    <p>Until the key is configured, this provider’s models cannot be selected for a prompt step. Keep API keys out of provider records.</p>
+    <p className="field-hint">This integration has automated tests using simulated API responses. Those tests do not verify a live connection to your account.</p>
+   </>}
+  </section>)}</div>}
   {['create','update','delete'].includes(query.saved)&&<p role="status" className="notice">{query.saved==='delete'?'Record deleted.':'Changes saved.'}</p>}
   <form className="dashboard-filters"><SearchField search={search} placeholder={`Search ${spec.title.toLowerCase()}`}/><button>Search</button>{search&&<a href={path}>Clear search</a>}</form>
   <div className="table-container"><table><thead><tr><th>{resource==='mix'?'Prompt chain':'Name / entry'}</th><th>{resource==='mix'?'Generation':'Details'}</th><th>Action</th></tr></thead><tbody>
