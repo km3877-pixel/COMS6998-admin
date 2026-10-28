@@ -595,3 +595,23 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   Setup and limitations are documented in `Documentation/PROVIDER_ROUTING.md`.
   Authenticated deployed browser mutations remain unverified. Release checks
   are recorded separately after deployment.
+
+### Provider routing release verified
+
+- Commit `3b6ee68edc0a25501ba84a3313791c7de961eab5` is READY at
+  https://coms6998-admin-pxzalapbm-km3877-coms-6998.vercel.app .
+- After readiness, live HTTP smoke passed for public entry points, every
+  protected route, anonymous/forged/RSC access, media/API denial and invalid
+  callbacks. Production alias checks passed and its nine login browser scripts
+  contained neither configured private key. An earlier check during BUILDING
+  hit the deployment placeholder; it was rerun after readiness.
+- No authenticated deployed browser mutation or assignment submission claimed.
+  This post-release journal entry is local only.
+
+### Provider identifier guidance
+
+- Add/edit provider forms now show the exact supported identifiers beside the
+  identifier input: Google Gemini = `google_gemini`, OpenAI = `openai`, and
+  Anthropic = `anthropic`. Native input suggestions offer these same values.
+- Help text explains that other identifiers are registry-only and supported
+  providers still require a server API key. No credential or database changes.
