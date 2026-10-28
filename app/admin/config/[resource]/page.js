@@ -7,6 +7,7 @@ import {resources} from '../../../../lib/week7.mjs';
 import {isUuid,listFilters} from '../../../../lib/management.mjs';
 import {LoadError,Pagination,SearchField} from '../../list-parts';
 import ConfigForm from './config-form';
+import ModelHelp from './model-help';
 import {resourceNames} from '../../../../lib/admin-navigation.mjs';
 
 export default async function Configuration({params,searchParams}) {
@@ -45,7 +46,7 @@ export default async function Configuration({params,searchParams}) {
   <h2>{creating?`Add ${noun}`:`Edit ${noun}`}</h2>
   <p className="muted">{creating?spec.description:label(selected)}</p>
   {resource==='steps'&&<><p className="record-value">{selected.instructions}</p><p>Step {selected.position} · Configured temperature {selected.temperature}</p></>}
-  <ConfigForm key={selected?`${selected.id}:${selected.revision}`:'new'} resource={resource} record={selected??{id:randomUUID()}} providers={providers} models={models} search={search} page={page}/>
+  <ConfigForm key={selected?`${selected.id}:${selected.revision}`:'new'} resource={resource} record={selected??{id:randomUUID()}} providers={providers} models={models} statuses={statuses} search={search} page={page}/>
   {selected&&!spec.updateOnly&&<details className="danger-zone"><summary>Delete {noun}</summary><p>This permanently removes this {noun}. Saved generation history is retained.</p><ConfigForm resource={resource} record={selected} deleting search={search} page={page}/></details>}
  </section>;
  const display=(row,f)=>f.key==='chain_id'?chains[row[f.key]]?.name??row[f.key]:f.key==='provider_id'?providers.find(p=>p.id===row[f.key])?.name??row[f.key]:f.key==='model_id'&&resource==='steps'?context?.chains.flatMap(c=>c.steps??[]).find(s=>s.model_id===row[f.key])?.model??row[f.key]:String(row[f.key]??'—');
@@ -60,6 +61,7 @@ export default async function Configuration({params,searchParams}) {
     <p className="field-hint">This integration has automated tests using simulated API responses. Those tests do not verify a live connection to your account.</p>
    </>}
   </section>)}</div>}
+  {resource==='models'&&<ModelHelp/>}
   {['create','update','delete'].includes(query.saved)&&<p role="status" className="notice">{query.saved==='delete'?'Record deleted.':'Changes saved.'}</p>}
   <form className="dashboard-filters"><SearchField search={search} placeholder={`Search ${spec.title.toLowerCase()}`}/><button>Search</button>{search&&<a href={path}>Clear search</a>}</form>
   <div className="table-container"><table><thead><tr><th>{resource==='mix'?'Prompt chain':'Name / entry'}</th><th>{resource==='mix'?'Generation':'Details'}</th><th>Action</th></tr></thead><tbody>
@@ -67,6 +69,7 @@ export default async function Configuration({params,searchParams}) {
     {resource==='mix'?<span className={`badge ${row.caption_count?'positive':''}`}>{row.caption_count?'Included · 1 caption':'Excluded · 0 captions'}</span>:
      spec.fields.filter(f=>!['name','term','domain','email','caption'].includes(f.key)).map(f=><div className="record-field" key={f.key}>{f.type==='textarea'?<><span className="muted">{f.label}</span><p className="record-value">{display(row,f).slice(0,160)||'Not provided'}{display(row,f).length>160?'…':''}</p>{display(row,f).length>160&&<details><summary>Read full {f.label.toLowerCase()}</summary><p className="record-value">{display(row,f)}</p></details>}</>:<><span className="muted">{f.label}: </span><span className="record-value">{display(row,f)}</span></>}</div>)}
     {['domains','emails'].includes(resource)&&<span className="muted">Signup allowlist entry</span>}
+    {resource==='models'&&(()=>{const provider=providers.find(p=>p.id===row.provider_id),status=statuses.find(s=>s.slug===provider?.slug);return <p className="field-hint">{!status?'Registry only — unsupported provider.':status.configured?'Provider credentials configured; model access checked at generation.':<>Unavailable — missing <code>{status.environmentVariable}</code>. <a href="/admin/config/providers">View setup instructions</a>.</>}</p>;})()}
     {resource==='chains'&&<details><summary>Read ordered steps</summary>{chains[row.id]?.steps?.map(s=><div key={s.id}><h4>{s.position}. {s.name}</h4><p className="record-value">{s.instructions}</p><p>{s.provider} / {s.model} · Temperature {s.temperature}</p></div>)}</details>}
    </td><td>{spec.readOnly?(resource==='chains'?<a href={`/admin/config/steps?q=${row.id}`}>View steps</a>:<span className="muted">Read-only</span>):<a className="row-action" aria-label={`Edit ${label(row)}`} href={`${path}?edit=${row.id}&${listQuery}`}>Edit</a>}</td></tr>)}
   </tbody></table></div>

@@ -620,3 +620,19 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   select it for a prompt step. Explain selection blocking and that simulated
   API tests do not verify a live account connection. Only variable names and
   readiness booleans are displayed, never secret values.
+- Production build and desktop/mobile fixture checks passed. Commit
+  `60c7b3d877ac3bff1147a4ed7a8ec7192a6dd9b2` is READY at
+  https://coms6998-admin-r4dip6o5j-km3877-coms-6998.vercel.app .
+  This release observation is local only; authenticated live edits are not claimed.
+
+### Model setup guidance
+
+- Added shared setup instructions to the model list and add/edit forms: exact
+  API model identifiers versus display names, image/JSON compatibility, provider
+  credentials and redeployment, step assignment, mix selection and a trial upload.
+- Selecting a provider in the model form shows its credential readiness and the
+  exact missing environment variable. Model rows show readiness and link to
+  provider setup. Saving a model is explicitly separate from activating it or
+  verifying live account access; no model list or capability guarantee is invented.
+- Production build and desktop/mobile fixture checks passed. No credentials,
+  model assignments, database schema or generation execution changes.
