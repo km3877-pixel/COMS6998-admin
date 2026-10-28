@@ -96,7 +96,8 @@ input:focus-visible,textarea:focus-visible { outline: 2px solid #174b85; outline
 .media-list-link { display:flex; align-items:center; gap:14px; min-width:250px; max-width:500px; }
 .media-list-link img { flex-shrink:0; }
 .media-form { display:grid; gap:18px; max-width:760px; }
-.media-form label { display:grid; gap:6px; font-weight:600; }
+.media-form label { display:grid; gap:6px; font-weight:600; min-width:0; }
+.media-form select { width:100%; min-width:0; }
 .media-form textarea { width:100%; resize:vertical; font-weight:400; }
 .media-form input { font-weight:400; }
 .media-form .check-label { display:flex; align-items:center; }

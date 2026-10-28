@@ -560,3 +560,38 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   active-route state and keyboard/mobile toggling. Screenshots inspected.
 - Authenticated live CRUD has not been independently exercised; deployment
   and live access-control checks are recorded after release.
+
+### UI deployment verified
+
+- Commit `2bbd558b81aae9a680752d03d730b9a96e49f084` is READY at
+  https://coms6998-admin-7q9e5cx6p-km3877-coms-6998.vercel.app .
+- Live HTTP smoke passed for login, all protected routes, forged sessions,
+  RSC redirects, media/API denial and invalid callbacks. No live authenticated
+  mutation claimed. This post-deployment entry is local only.
+
+### October 27: executable provider/model routing
+
+- Replaced the configured generator's Gemini-only dispatch with AI SDK adapters
+  for Google Gemini, OpenAI Responses and Anthropic. Provider endpoints are
+  fixed; secrets remain server-only. Preserve configuration, prompt, response,
+  usage, timing and provider/model identity in generation provenance.
+- Prompt steps now allow audited, revision-checked model reassignment through
+  the existing Google-admin-authorized RPC. All other step fields stay read-only.
+  Applied `20261027180000_admin_step_model_routing.sql` only to verified project
+  `thrkmilojkqqntdnrgwo`; hosted rollback checks passed for reassignment, stale
+  updates and unauthorized writes. No production model selections changed.
+- Added credential readiness on provider pages and preflight checks before
+  upload reservation. Missing-key models are unavailable in the step selector.
+  Capability/model access is checked during generation, not inferred from a
+  registry entry. OpenAI/Anthropic use provider-default sampling settings.
+- All 23 tests and production build passed. HTTP fixtures exercise all three
+  real adapters. A real Gemini call with a synthetic image succeeded; OpenAI and
+  Anthropic credentials are absent locally and in production, so no live calls
+  to those services were claimed. Desktop/mobile fixture checks passed after
+  fixing the model selector's narrow-screen overflow.
+- Updated Next.js from 16.3.8 to 16.4.3 after npm audit identified existing
+  critical advisories; installation reports zero vulnerabilities.
+- These settings affect admin image captions; consumer routing is separate.
+  Setup and limitations are documented in `Documentation/PROVIDER_ROUTING.md`.
+  Authenticated deployed browser mutations remain unverified. Release checks
+  are recorded separately after deployment.

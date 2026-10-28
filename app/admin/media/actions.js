@@ -1,4 +1,5 @@
 "use server";
+import {checkGenerationConfig} from '../../../lib/provider-routing.mjs';
 import { requireAdmin } from "../../../lib/auth/admin";
 import { createClient } from "../../../lib/supabase/server";
 import { storageAdmin } from "../../../lib/supabase/storage-admin";
@@ -47,7 +48,6 @@ export async function createMedia(previous,form) {
   await requireAdmin();
   const generate=form.get("generate")==="on";
   if(!process.env.SUPABASE_SERVICE_ROLE_KEY) return {error:"Image storage is not configured. Contact the administrator."};
-  if(generate && !process.env.GEMINI_API_KEY) return {error:"AI caption generation is not configured. You can upload without AI captions."};
   const id=form.get("id"),alt=form.get("alt"),file=form.get("image");
   if(!isUuid(id) || typeof alt!=="string" || !alt.trim() || alt.trim().length>300 || !(file instanceof File) || !file.size || file.size>3*1024*1024) return {error:"Choose a still JPEG, PNG or WebP under 3 MB and enter a description."};
   let image;
@@ -56,11 +56,12 @@ export async function createMedia(previous,form) {
   const client=await createClient();
   const configuration=generate?await client.rpc("admin_generation_config"):null;
   if(generate && (configuration.error || !configuration.data)) return {error:"Could not read the generation configuration. Refresh and try again."};
+  if(generate) {try {checkGenerationConfig(configuration.data);} catch(e) {return {error:e.message};}}
   const reserved=await client.rpc("admin_reserve_media",{p_id:id});
   if(reserved.error) return {error:"This request was already submitted or the creation limit was reached. Check Media, then start a new request. Allow 30 seconds between requests (20 per day)."};
   let generated={provenance:{source:"admin_upload",ai_generation:false}};
   if(generate) {
-  try { generated=await generateConfiguredCaptions(image.bytes,{apiKey:process.env.GEMINI_API_KEY,config:configuration.data}); }
+  try { generated=await generateConfiguredCaptions(image.bytes,{config:configuration.data}); }
   catch(e) {
     await client.rpc("admin_record_generation",{p_id:id,p_status:"failed",p_details:e.provenance??{error:"provider_or_configuration_failed",configuration:configuration.data}});
     return {error:"Caption generation failed. Check the enabled chains and model providers, then start a new request."};

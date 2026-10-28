@@ -15,7 +15,7 @@ test('Week 7 configuration CRUD, reference safety, mix, history and authorizatio
    create table public.profiles(id uuid primary key,firstname text,lastname text);
    create table auth.users(id uuid primary key,email text,created_at timestamptz,last_sign_in_at timestamptz);
    insert into public.profiles(id) values('${owner}');`);
-  for(const file of ['tests/fixtures/consumer-media.sql','supabase/migrations/20261020042634_admin_access.sql','supabase/migrations/20261020050449_admin_management.sql','supabase/migrations/20261027001320_admin_week7.sql','supabase/migrations/20261027031250_admin_image_upload.sql'])await db.exec(await readFile(file,'utf8'));
+  for(const file of ['tests/fixtures/consumer-media.sql','supabase/migrations/20261020042634_admin_access.sql','supabase/migrations/20261020050449_admin_management.sql','supabase/migrations/20261027001320_admin_week7.sql','supabase/migrations/20261027031250_admin_image_upload.sql','supabase/migrations/20261027180000_admin_step_model_routing.sql'])await db.exec(await readFile(file,'utf8'));
   await db.exec(`insert into admin_private.members(user_id)values('${owner}');set request.jwt.claim.sub='${owner}';set request.jwt.claims='{"app_metadata":{"provider":"google"},"amr":[{"method":"oauth"}]}';set role authenticated;`);
   const rpc=async(name,args=[])=> (await db.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as data`,args)).rows[0].data;
   const write=(kind,op,id,rev,data)=>rpc('admin_config_write',[kind,op,id,rev,JSON.stringify(data)]);
@@ -38,6 +38,17 @@ test('Week 7 configuration CRUD, reference safety, mix, history and authorizatio
   await assert.rejects(write('models','delete','72000000-0000-0000-0000-000000000001',1,{}),/foreign key/);
   await assert.rejects(write('terms','create',randomUUID(),0,{term:'',definition:'x',example:''}),/check constraint/);
   await assert.rejects(write('terms','create',randomUUID(),0,{term:'x',definition:'x',example:'',revision:100}),/Invalid fields/);
+  const step=(await rpc('admin_config_list',['steps','',1])).rows[0];
+  const modelId=randomUUID();
+  await write('models','create',modelId,0,{name:'Routing model',model_id:'routing-test',provider_id:'71000000-0000-0000-0000-000000000001'});
+  await write('steps','update',step.id,step.revision,{model_id:modelId});
+  assert.equal((await rpc('admin_generation_config')).chains.flatMap(c=>c.steps).find(s=>s.id===step.id).model,'routing-test');
+  await assert.rejects(write('steps','update',step.id,step.revision,{model_id:step.model_id}),/Record changed/);
+  await assert.rejects(write('steps','update',step.id,step.revision+1,{model_id:randomUUID()}),/foreign key/);
+  await assert.rejects(write('steps','update',step.id,step.revision+1,{model_id:modelId,instructions:'Injected'}),/Invalid fields/);
+  await assert.rejects(write('steps','delete',step.id,step.revision+1,{}),/Invalid operation/);
+  await write('steps','update',step.id,step.revision+1,{model_id:step.model_id});
+  await write('models','delete',modelId,1,{});
   const mix=(await rpc('admin_config_list',['mix','',1])).rows;
   for(const row of mix.slice(0,2))await write('mix','update',row.id,1,{caption_count:0});
   await assert.rejects(write('mix','update',mix[2].id,1,{caption_count:0}),/at least one/);
@@ -80,7 +91,7 @@ test('Week 7 configuration CRUD, reference safety, mix, history and authorizatio
 test('configured generation honors the mix and preserves prompts and responses',async()=>{
  const config={chains:[{id:'chain',style:'college_twist',caption_count:1,steps:[{id:'step',provider:'google_gemini',model:'test-model',temperature:0.8,instructions:'College joke'}]},{style:'internet_voice',caption_count:0}],terms:[{term:'test',definition:'context'}],examples:[]};
  let calls=0;
- const result=await generateConfiguredCaptions(Buffer.from('image'),{apiKey:'test',config,fetchImpl:async(url,options)=>{calls++;assert.match(url,/test-model:generateContent/);assert.match(JSON.parse(options.body).systemInstruction.parts[0].text,/context/);return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:'{"caption":"A college joke"}'}]}}]})};}});
+ const result=await generateConfiguredCaptions(Buffer.from('image'),{env:{GEMINI_API_KEY:'test'},config,fetchImpl:async(url,options)=>{calls++;assert.match(url,/test-model:generateContent/);assert.match(JSON.parse(options.body).systemInstruction.parts[0].text,/context/);return Response.json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:'{"caption":"A college joke"}'}]}}],usageMetadata:{promptTokenCount:10,candidatesTokenCount:10,totalTokenCount:20}});}});
  assert.equal(calls,1);assert.deepEqual(result.captions,{college_twist:'A college joke'});assert.equal(result.provenance.steps.length,1);
  await assert.rejects(generateConfiguredCaptions(Buffer.from('x'),{config:{chains:[]}}),/configuration/);
  const bad=structuredClone(config);bad.chains[0].steps[0].provider='unknown';await assert.rejects(generateConfiguredCaptions(Buffer.from('x'),{config:bad}),/configuration/);

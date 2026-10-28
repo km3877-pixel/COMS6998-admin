@@ -1,3 +1,4 @@
+import {providerStatus} from '../../../../lib/provider-routing.mjs';
 import {randomUUID} from 'node:crypto';
 import {notFound} from 'next/navigation';
 import {requireAdmin} from '../../../../lib/auth/admin';
@@ -15,7 +16,7 @@ export default async function Configuration({params,searchParams}) {
  const query=await searchParams,{search,page}=listFilters(query),client=await createClient();
  const {data,error}=await client.rpc('admin_config_list',{p_resource:resource,p_search:search,p_page:page});
  if(error||!data) return <LoadError/>;
- let selected=null,providers=[],context=null;
+ let selected=null,providers=[],models=[],context=null;
  if(query.edit && isUuid(query.edit)) {
   const result=await client.rpc('admin_config_record',{p_resource:resource,p_id:query.edit});
   if(result.error) return <LoadError/>;
@@ -24,8 +25,13 @@ export default async function Configuration({params,searchParams}) {
  if(['models','chains','steps','mix'].includes(resource)) {
   const result=await client.rpc('admin_generation_config'); if(result.error) return <LoadError/>; context=result.data;
  }
- if(resource==='models') {
+ if(['models','steps'].includes(resource)) {
   let n=1,total=0; do {const result=await client.rpc('admin_config_list',{p_resource:'providers',p_search:'',p_page:n++});if(result.error)return <LoadError/>;providers.push(...result.data.rows);total=result.data.total;}while(providers.length<total);
+ }
+ const statuses=providerStatus();
+ if(resource==='steps') {
+  let n=1,total=0; do {const result=await client.rpc('admin_config_list',{p_resource:'models',p_search:'',p_page:n++});if(result.error)return <LoadError/>;models.push(...result.data.rows);total=result.data.total;}while(models.length<total);
+  models=models.map(m=>{const p=providers.find(p=>p.id===m.provider_id),status=statuses.find(s=>s.slug===p?.slug);return {...m,providerName:p?.name??'Unknown',available:status?.configured??false};});
  }
  const chains=Object.fromEntries((context?.chains??[]).map(c=>[c.id,c]));
  const path=`/admin/config/${resource}`;
@@ -38,12 +44,14 @@ export default async function Configuration({params,searchParams}) {
   <a className="back-link" href={back}>← Back to {spec.title.toLowerCase()}</a>
   <h2>{creating?`Add ${noun}`:`Edit ${noun}`}</h2>
   <p className="muted">{creating?spec.description:label(selected)}</p>
-  <ConfigForm key={selected?`${selected.id}:${selected.revision}`:'new'} resource={resource} record={selected??{id:randomUUID()}} providers={providers} search={search} page={page}/>
+  {resource==='steps'&&<><p className="record-value">{selected.instructions}</p><p>Step {selected.position} · Configured temperature {selected.temperature}</p></>}
+  <ConfigForm key={selected?`${selected.id}:${selected.revision}`:'new'} resource={resource} record={selected??{id:randomUUID()}} providers={providers} models={models} search={search} page={page}/>
   {selected&&!spec.updateOnly&&<details className="danger-zone"><summary>Delete {noun}</summary><p>This permanently removes this {noun}. Saved generation history is retained.</p><ConfigForm resource={resource} record={selected} deleting search={search} page={page}/></details>}
  </section>;
  const display=(row,f)=>f.key==='chain_id'?chains[row[f.key]]?.name??row[f.key]:f.key==='provider_id'?providers.find(p=>p.id===row[f.key])?.name??row[f.key]:f.key==='model_id'&&resource==='steps'?context?.chains.flatMap(c=>c.steps??[]).find(s=>s.model_id===row[f.key])?.model??row[f.key]:String(row[f.key]??'—');
  return <section><div className="section-header"><h2>{spec.title}</h2>
   {!spec.readOnly&&!spec.updateOnly?<a className="button" href={`${path}?create=1&${listQuery}`}>Add {noun}</a>:<span className="badge">{spec.readOnly?'Read-only':'Applies to new admin uploads'}</span>}</div><p className="muted">{spec.description}</p>
+  {resource==='providers'&&<div className="notice">{statuses.map(s=><p key={s.slug}><strong>{s.name}</strong> ({s.slug}): {s.configured?'Credentials configured; model access checked on generation':'Missing server credentials'}</p>)}</div>}
   {['create','update','delete'].includes(query.saved)&&<p role="status" className="notice">{query.saved==='delete'?'Record deleted.':'Changes saved.'}</p>}
   <form className="dashboard-filters"><SearchField search={search} placeholder={`Search ${spec.title.toLowerCase()}`}/><button>Search</button>{search&&<a href={path}>Clear search</a>}</form>
   <div className="table-container"><table><thead><tr><th>{resource==='mix'?'Prompt chain':'Name / entry'}</th><th>{resource==='mix'?'Generation':'Details'}</th><th>Action</th></tr></thead><tbody>
