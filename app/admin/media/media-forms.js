@@ -22,25 +22,33 @@ export function CreateForm({id,configured,aiConfigured=false}) {
 export function EditForm({media}) {
   const [state,action,pending]=useActionState(updateMedia,null);
   const editable=media.captions.filter(c=>c.active && !c.authored_by && !c.generated_by);
+  const canPublish=media.captions.some(c=>c.active);
   return <form action={action} className="media-form">
     <input name="id" type="hidden" value={media.id}/><input name="revision" type="hidden" value={media.revision}/>
     <label>Image description<textarea name="alt" defaultValue={media.alt_text} maxLength={300} rows={2} required/></label>
     {editable.map(c=><div key={c.id}><input type="hidden" name="caption_id" value={c.id}/>
       <label>{styles[c.style] || c.style}<textarea name={`caption_${c.id}`} defaultValue={c.text} maxLength={500} rows={3} required/></label>
       <small className="muted">{c.upvotes} upvotes · {c.downvotes} downvotes on this version</small></div>)}
-    <p className="helper muted">Changing a caption creates a new version. Existing votes stay with the previous text. User-written and personal on-demand captions remain read-only.</p>
-    <label className="check-label"><input type="checkbox" name="published" defaultChecked={media.published} disabled={!media.captions.some(c=>c.active)}/>Published in the consumer app</label>
-    {!media.captions.some(c=>c.active)&&<p className="helper muted">This image has no captions and stays a draft. You can edit its description or delete it.</p>}
+    {media.captions.length>0 && <p className="helper muted">Changing a caption creates a new version. Existing votes stay with the previous text. User-written and personal on-demand captions remain read-only.</p>}
+    {canPublish ? <div>
+      <label className="check-label"><input type="checkbox" name="published" defaultChecked={media.published}/>Show in the consumer feed</label>
+      <p className="helper muted">Select to publish, or clear to keep as a draft. Apply with Save changes.</p>
+    </div> : <p className="notice"><strong>Draft only.</strong> This image has no active caption, so it cannot appear in the consumer feed. Saving the description keeps it as a draft; a description is not a caption.</p>}
     <Message state={state}/><div><button disabled={pending}>{pending?"Saving…":"Save changes"}</button></div>
   </form>;
 }
 export function DeleteForm({media}) {
   const [state,action,pending]=useActionState(deleteMedia,null);
-  return <details className="danger-zone"><summary>Delete image</summary>
-    <p>This removes the post and its captions from the active app. Ratings, generation records, and the private image file are retained for audit history. There is no restore button.</p>
-    <form action={action} className="media-form"><input name="id" type="hidden" value={media.id}/><input name="revision" type="hidden" value={media.revision}/>
-      <label>Type DELETE to confirm<input name="confirmation" required pattern="DELETE" autoComplete="off"/></label><Message state={state}/>
-      <div><button disabled={pending}>{pending?"Deleting…":"Delete image"}</button></div>
-    </form>
-  </details>;
+  const [confirming,setConfirming]=useState(false);
+  return <div className="danger-zone">
+    {confirming ? <form action={action} className="media-form">
+      <input name="id" type="hidden" value={media.id}/><input name="revision" type="hidden" value={media.revision}/>
+      <p><strong>Are you sure you want to delete this image?</strong><br/>The image and its captions will be removed from the app. This cannot be undone here.</p>
+      <Message state={state}/>
+      <div className="button-row">
+        <button type="submit" name="confirmation" value="DELETE" disabled={pending}>{pending?"Deleting…":"Yes, delete image"}</button>
+        <button type="button" className="cancel-delete" disabled={pending} onClick={()=>setConfirming(false)}>Cancel</button>
+      </div>
+    </form> : <button type="button" onClick={()=>setConfirming(true)}>Delete image</button>}
+  </div>;
 }

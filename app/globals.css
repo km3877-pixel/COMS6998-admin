@@ -104,6 +104,8 @@ input:focus-visible,textarea:focus-visible { outline: 2px solid #174b85; outline
 .media-preview { width:100%; max-width:460px; max-height:340px; object-fit:contain; background:#edf3f7; border-radius:6px; margin:16px 0; }
 .danger-zone { border:1px solid #dfb9b5; padding:18px; border-radius:6px; margin-top:28px; }
 .danger-zone button { background:#a13f37; border-color:#a13f37; }
+.danger-zone .cancel-delete { background:#fff; color:#32658b; border-color:#b5c7d5; }
+.danger-zone .cancel-delete:hover { background:#eef4f8; }
 .form-message { padding:12px; background:#fff9ed; border-radius:6px; border:1px solid #dfcda7; }
 .provenance { white-space:pre-wrap; overflow-wrap:anywhere; max-height:300px; overflow:auto; font-size:12px; }
 code { overflow-wrap:anywhere; }

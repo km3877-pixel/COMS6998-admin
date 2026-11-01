@@ -647,3 +647,28 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   was live-tested; other adapters have simulated-response coverage.
 - Admin routing applies to admin uploads; consumer generation remains separate.
 - No assignment submission or authenticated deployed CRUD verification claimed.
+
+## October 31, 2026: Administrators as the landing page
+
+- Applied user feedback by removing the Overview group and Statistics link from
+  admin navigation. `/admin` now redirects authorized users to Administrators
+  (`/admin/superusers`), including entry through the home page and login callback.
+- The landing route retains its server-side admin check and no longer requests
+  dashboard statistics. Existing destination authorization remains in place.
+- Local production build passed. No deployment or authenticated live-browser
+  verification performed for this change.
+
+## October 31, 2026: Clearer image editing and deletion
+
+- Replaced the disabled publishing checkbox for caption-free images with a
+  Draft only explanation distinguishing descriptions from captions. Images with
+  active captions show a feed visibility checkbox and Save changes guidance.
+  Caption-version guidance appears only when caption records exist.
+- Replaced the image-delete disclosure and typed DELETE field with a button,
+  then an inline Are you sure prompt, Yes, delete image and Cancel. The explicit
+  confirmation submits the existing server action's required confirmation value.
+  Authorization, revision checks and database deletion/archive behavior remain.
+- Local production build passed. Desktop/mobile interactive fixtures verified
+  cancel makes no request, confirmation submits the expected value, errors remain
+  visible, and no horizontal overflow. No live data was deleted or deployment
+  performed. Earlier landing-page changes remain included in the local work.
