@@ -672,3 +672,33 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   cancel makes no request, confirmation submits the expected value, errors remain
   visible, and no horizontal overflow. No live data was deleted or deployment
   performed. Earlier landing-page changes remain included in the local work.
+
+### Feedback changes deployed
+
+- Pushed commit `4de4563` to main. Vercel production deployment
+  `dpl_9KZ3MyyDqtCQYW5gJdun8pqpegjZ` reported Ready (21-second build):
+  https://coms6998-admin-a6j6hunmd-km3877-coms-6998.vercel.app
+- Production alias now points to this deployment. Live HTTP access-control smoke
+  and production alias/browser-secret checks passed. Signed-in deployed UI
+  interactions remain unverified. Older deployment URLs retain the older UI.
+- This post-release observation is local only.
+
+## October 31, 2026: Write captions from image editing
+
+- Added an optional Add a caption field beside image editing. Entering text
+  enables feed publication; Save changes atomically saves the description,
+  caption and publication choice. Existing written captions appear inline.
+- New guarded RPC records human style, current administrator authorship and
+  admin_written provenance. Preserves the existing one-written-caption per
+  account/image constraint, original uploader, other captions, votes and RLS.
+  Existing curated-image publication rules remain. Saved human captions remain
+  read-only; no caption text is represented as AI-generated.
+- Applied migration 20261101021352_admin_written_caption to verified project
+  thrkmilojkqqntdnrgwo after dry-run review. All 24 local tests and production
+  build passed. New tests cover atomic rollback, stale revisions, duplicates,
+  authorship and nonadmin/password/revoked/anonymous denial. Hosted rollback-only
+  synthetic caption/publication checks passed; no test records retained.
+- Desktop/mobile interactive fixtures verify adding text enables publication and
+  Save changes submits both caption and publication choice. Security advisors
+  were reviewed; authenticated SECURITY DEFINER access is intentional and guarded.
+  Authenticated deployed browser saves remain unverified. Release follows below.

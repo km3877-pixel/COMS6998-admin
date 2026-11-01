@@ -6,7 +6,7 @@ import { LoadError } from "../../list-parts";
 import { EditForm,DeleteForm } from "../media-forms";
 import MediaImage from "../media-image";
 export default async function MediaDetail({params,searchParams}) {
-  await requireAdmin();
+  const actor=await requireAdmin();
   const {id}=await params;
   if(!isUuid(id)) notFound();
   const {data:media,error}=await (await createClient()).rpc("admin_media_detail",{p_id:id});
@@ -15,6 +15,7 @@ export default async function MediaDetail({params,searchParams}) {
   const query=await searchParams;
   // Only fields required by forms cross the client boundary.
   const formMedia={id:media.id,revision:media.revision,alt_text:media.alt_text,published:media.published,
+    ownWrittenCaption:media.captions.find(c=>c.authored_by===actor.id)?.text || null,
     captions:media.captions.map(({id,text,style,active,authored_by,generated_by,upvotes,downvotes})=>({id,text,style,active,authored_by,generated_by,upvotes,downvotes}))};
   return <section><a href="/admin/images">← Images</a><div className="section-header"><h2>View / edit image</h2><a href={`/admin/ratings?q=${id}`}>View ratings</a></div>
     {(query.saved==="1" || query.created==="1") && <p role="status" className="notice">{query.created==="1"?"Image uploaded and saved as a draft.":"Changes saved."}</p>}

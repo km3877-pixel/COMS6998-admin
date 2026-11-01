@@ -15,6 +15,7 @@ function failure(error) {
     "P0002":"This post no longer exists.",
     "55000":"A generation is still pending for this post. Retry after it completes.",
     "55P03":"This post is busy. Please try again shortly.",
+    "23505":"You already have a written caption on this image. Reload to see it.",
   };
   return {error:messages[error?.code] || "The change could not be saved. Refresh and try again."};
 }
@@ -30,7 +31,11 @@ export async function updateMedia(previous,form) {
   if(ids.length>3 || ids.some(id=>!isUuid(id))) return {error:"Invalid captions. Reload this page."};
   const captions=ids.map(id=>({id,text:form.get(`caption_${id}`)}));
   if(captions.some(c=>typeof c.text!=="string" || !c.text.trim() || c.text.trim().length>500)) return {error:"Each caption must contain 1–500 characters."};
-  const {error}=await (await createClient()).rpc("admin_update_media",{p_id:input.id,p_revision:input.revision,p_alt:alt.trim(),p_published:form.get("published")==="on",p_captions:captions});
+  const written=form.get("written_caption");
+  if(written!==null && (typeof written!=="string" || written.trim().length>500)) return {error:"Enter a caption of up to 500 characters."};
+  const text=written?.trim();
+  const args={p_id:input.id,p_revision:input.revision,p_alt:alt.trim(),p_published:form.get("published")==="on",p_captions:captions};
+  const {error}=await (await createClient()).rpc(text?"admin_save_media_with_caption":"admin_update_media",text?{...args,p_text:text}:args);
   if(error) return failure(error);
   revalidatePath("/admin","layout");
   redirect(`/admin/images/${input.id}?saved=1`);

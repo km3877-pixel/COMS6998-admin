@@ -22,18 +22,24 @@ export function CreateForm({id,configured,aiConfigured=false}) {
 export function EditForm({media}) {
   const [state,action,pending]=useActionState(updateMedia,null);
   const editable=media.captions.filter(c=>c.active && !c.authored_by && !c.generated_by);
-  const canPublish=media.captions.some(c=>c.active);
+  const [written,setWritten]=useState("");
+  const [published,setPublished]=useState(media.published);
+  const canPublish=media.captions.some(c=>c.active) || written.trim().length>0;
   return <form action={action} className="media-form">
     <input name="id" type="hidden" value={media.id}/><input name="revision" type="hidden" value={media.revision}/>
     <label>Image description<textarea name="alt" defaultValue={media.alt_text} maxLength={300} rows={2} required/></label>
     {editable.map(c=><div key={c.id}><input type="hidden" name="caption_id" value={c.id}/>
       <label>{styles[c.style] || c.style}<textarea name={`caption_${c.id}`} defaultValue={c.text} maxLength={500} rows={3} required/></label>
       <small className="muted">{c.upvotes} upvotes · {c.downvotes} downvotes on this version</small></div>)}
-    {media.captions.length>0 && <p className="helper muted">Changing a caption creates a new version. Existing votes stay with the previous text. User-written and personal on-demand captions remain read-only.</p>}
+    {media.captions.length>0 && <p className="helper muted">Changing an existing AI caption creates a new version. Existing votes stay with the previous text. Saved user-written and personal on-demand captions remain read-only.</p>}
+    {media.ownWrittenCaption ? <div><h3>Your written caption</h3><p>{media.ownWrittenCaption}</p><p className="helper muted">Each account can contribute one written caption per image.</p></div> : <div>
+      <label>Add a caption<textarea name="written_caption" value={written} onChange={e=>setWritten(e.target.value)} maxLength={500} rows={3} placeholder="Write a caption for this image" disabled={pending}/></label>
+      <p className="helper muted">Optional. Saved as your written caption. To publish it, select Show in the consumer feed, then Save changes.</p>
+    </div>}
     {canPublish ? <div>
-      <label className="check-label"><input type="checkbox" name="published" defaultChecked={media.published}/>Show in the consumer feed</label>
+      <label className="check-label"><input type="checkbox" name="published" checked={published} onChange={e=>setPublished(e.target.checked)}/>Show in the consumer feed</label>
       <p className="helper muted">Select to publish, or clear to keep as a draft. Apply with Save changes.</p>
-    </div> : <p className="notice"><strong>Draft only.</strong> This image has no active caption, so it cannot appear in the consumer feed. Saving the description keeps it as a draft; a description is not a caption.</p>}
+    </div> : <p className="helper muted">Add a caption above to enable publishing. You can also save just the description and keep this image as a draft.</p>}
     <Message state={state}/><div><button disabled={pending}>{pending?"Saving…":"Save changes"}</button></div>
   </form>;
 }
