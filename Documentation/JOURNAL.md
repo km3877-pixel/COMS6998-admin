@@ -702,3 +702,19 @@ Setup files are uncommitted. No commit, push or deployment has been performed.
   Save changes submits both caption and publication choice. Security advisors
   were reviewed; authenticated SECURITY DEFINER access is intentional and guarded.
   Authenticated deployed browser saves remain unverified. Release follows below.
+
+### Written caption release verified
+
+- Commit 46f6137 is Ready in production (20-second build) at
+  https://coms6998-admin-608x6hnvi-km3877-coms-6998.vercel.app .
+  Main production alias updated. Live HTTP access-control and production
+  browser-secret checks passed. No real user image was modified during QA.
+  Authenticated deployed browser save remains unverified; this entry is local.
+
+## October 31, 2026: Remove record ID disclosures
+
+- Removed the ID dropdown and UUID beneath names in the shared configuration
+  list, including Terms. Record identifiers remain internal to edit links and
+  actions. No data or authorization changes.
+- Production build validation and release status follow below.
+- Local production build passed; deployment verification pending.

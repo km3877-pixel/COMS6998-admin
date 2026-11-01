@@ -65,7 +65,7 @@ export default async function Configuration({params,searchParams}) {
   {['create','update','delete'].includes(query.saved)&&<p role="status" className="notice">{query.saved==='delete'?'Record deleted.':'Changes saved.'}</p>}
   <form className="dashboard-filters"><SearchField search={search} placeholder={`Search ${spec.title.toLowerCase()}`}/><button>Search</button>{search&&<a href={path}>Clear search</a>}</form>
   <div className="table-container"><table><thead><tr><th>{resource==='mix'?'Prompt chain':'Name / entry'}</th><th>{resource==='mix'?'Generation':'Details'}</th><th>Action</th></tr></thead><tbody>
-   {data.rows.map(row=><tr key={row.id}><td><strong>{label(row)}</strong><details><summary>ID</summary><code>{row.id}</code></details></td><td>
+   {data.rows.map(row=><tr key={row.id}><td><strong>{label(row)}</strong></td><td>
     {resource==='mix'?<span className={`badge ${row.caption_count?'positive':''}`}>{row.caption_count?'Included · 1 caption':'Excluded · 0 captions'}</span>:
      spec.fields.filter(f=>!['name','term','domain','email','caption'].includes(f.key)).map(f=><div className="record-field" key={f.key}>{f.type==='textarea'?<><span className="muted">{f.label}</span><p className="record-value">{display(row,f).slice(0,160)||'Not provided'}{display(row,f).length>160?'…':''}</p>{display(row,f).length>160&&<details><summary>Read full {f.label.toLowerCase()}</summary><p className="record-value">{display(row,f)}</p></details>}</>:<><span className="muted">{f.label}: </span><span className="record-value">{display(row,f)}</span></>}</div>)}
     {['domains','emails'].includes(resource)&&<span className="muted">Signup allowlist entry</span>}
